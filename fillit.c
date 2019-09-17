@@ -4,25 +4,36 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-struct		s_point  
+typedef	struct		s_point  
 {
 	int				x;
 	int				y;
-}			s_point;
+}					s_point;
 
 typedef	struct		s_list
 {
 	struct	s_point	t[4];
 	char			c;
-	struct s_list	*next;
+	struct	s_list	*next;
 }					t_tetr;
 
-struct				s_square
+typedef	struct		s_square
 {
 	char			**mas;
 	int				size;
 }					s_square;
 
+void print_square(s_square square)
+{
+	int		i;
+	
+	i = -1;
+	while (++i < square.size)
+	{
+		write(1, square.mas[i], square.size);
+		write(1, "\n", 1);
+	}
+}
 
 int validate(char *buf)
 {
@@ -128,58 +139,105 @@ int check_file(char *file_name, t_tetr *tetr)
 		}
 	if ((count > 25) || (close(fd) == -1))
 		return (-3);
-	return (1);
+	return (count);
 }
-/*
-int fit(struct s_square square, t_tetr *tetr, int i, int j)
+
+int fit(s_square square, t_tetr *tetr, int i, int j)
 {
+	int	n;
+
+	n = 0;
+	while (n < 4)
+	{
+		if (('.' != square.mas[i + tetr->t[n].y][j + tetr->t[n].x]) ||
+				(i + tetr->t[n].y >= square.size) || (j + tetr->t[n].x >= square.size))
+			return (-20);
+		++n;
+	}
 	return (1);
 }
 
-int set(struct s_square square, t_tetr *tetr, int i, int j)
+void	set(s_square square, t_tetr *tetr, int i, int j)
 {
-	return (1);
+	int	n;
+
+	n = 0;
+	while (n < 4)
+	{
+		square.mas[i + tetr->t[n].y][j + tetr->t[n].x] = tetr->c;
+		++n;
+	}
 }
 
-int del(struct s_square square, t_tetr *tetr, int i, int j)
+void	del(s_square square, t_tetr *tetr, int i, int j)
 {
-	return (1);
+	int	n;
+
+	n = 0;
+	while (n < 4)
+	{
+		square.mas[i + tetr->t[n].y][j + tetr->t[n].x] = '.';
+		++n;
+	}
 }
 
-int recur(struct s_square square, t_tetr *tetr)
+int recur(s_square square, t_tetr *tetr, t_tetr *tetr_1)
 {
 	int	i;
 	int j;
 
 	if (NULL == tetr)
-		return (1);
+	{		
+	//	write(1, "\ntetr_end\n", 10);
+		return (11);
+	}
 	i = 0;
 	while (i < square.size)
 	{
 		j = 0;
 		while (j < square.size)
 		{
-			if (fit(square, tetr, i, j))
+			if (1 == fit(square, tetr, i, j))
 			{
 				set(square, tetr, i, j);
-				if (recur(square, tetr->next))
-					return (1);
+	//			print_square(square);
+	//			write(1, "\n", 1);
+				if (recur(square, tetr->next, tetr_1) != 0)
+					return (13);
 				else
-					del(square, tetr, i, j)
+				{
+					del(square, tetr, i, j);
+	//				write(1, "\ndel\n", 5);
+				}
 			}
 			++j;
 		}
-		if ((i + 1 == square.size) && (j + 1 == square.size) && (tetr != tetr_1))
-			return (0);
-		else if ((i + 1 == square.size) && (j + 1 == square.size) && (tetr == tetr_1))
-		{
-			square.size++;
-			return (recur(square, tetr));
-		}
+//		if ((i + 1 == square.size) && (j + 1 == square.size) && (tetr != tetr_1))
+//		{
+//			write(1, "\nfull\n", 6);
+//			return (0);
+//		}
+//		else if ((i + 1 == square.size) && (j + 1 == square.size) && (tetr == tetr_1))
+//		{
+//			square.size++;
+//			return (recur(square, tetr, tetr_1));
+//		}
 		++i;
 	}
+	if ((i == square.size) && (j  == square.size) && (tetr != tetr_1))
+	{
+	//	write(1, "\nfull\n", 6);
+		return (0);
+	}
+	else if ((i == square.size) && (j == square.size) && (tetr == tetr_1))
+	{
+	//	write(1, "\n+size+\n", 8);
+		square.size++;
+		return (recur(square, tetr, tetr_1));
+	}
+	return (12);
 }
-*/
+//*/
 
 int print_tetr(t_tetr *tetr)
 {
@@ -193,22 +251,77 @@ int print_tetr(t_tetr *tetr)
 		printf("tetr %d \n", j);
 		while (++i < 4)
 			printf("x%d = %d, y%d = %d \n", i, tetr->t[i].x, i, tetr->t[i].y);
-		{
 		++j;
 	}
 	return (1);
 }
 
+void	free_square(char **mas, int i)
+{
+	int j;
+
+	j = -1;
+	while (++j < i)
+	{
+		free(mas[j]);
+		mas[j] = NULL;
+	}
+	free(mas);
+	mas = NULL;
+}
+
+char **generate_square()
+{
+	int		i;
+	int		j;
+	char	**mas;
+
+	if (!(mas = (char **)malloc(sizeof(char *) * 14)))
+		return (NULL);
+	i = 0;
+	while (i < 13)
+	{
+		if(!(mas[i] = (char *)malloc(sizeof(char *) * 14)))
+		{
+			free_square(mas, i);
+			return (NULL);
+		}
+		j = -1;
+		while (++j < 14)
+			mas[i][j] = '.';
+		mas[i][j] = '\0';
+		++i;
+	}
+	mas[i] = NULL;
+	return (mas);
+}
+
+int min_size(int n)
+{
+	int	i;
+
+	i = 1;
+	while ((i * i) < (n * 4))
+		++i;
+	return (i);
+}
+
 int main(int ac, char **av)
 {
-	t_tetr	*tetr;
-	int		i;
+	t_tetr			*tetr;
+	int				i;
+	s_square		square;
 
 	i = ac;	
 	if (!(tetr = malloc(sizeof(t_tetr))))
 		return (-1);
 	tetr->next = NULL;
-	printf("%d finish", check_file(av[1], tetr));
-	print_tetr(tetr);
+	i = check_file(av[1], tetr);
+	square.size = min_size(i);
+	square.mas = generate_square();
+//	printf("\n %d ", recur(square, tetr, tetr));
+	recur(square, tetr, tetr);
+	print_square(square);
+	//print_tetr(tetr);
 	return (1);
 }
